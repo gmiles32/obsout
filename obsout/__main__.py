@@ -1,22 +1,32 @@
+import os
 import json
 import requests
+from dotenv import load_dotenv
+
+from outline.client import *
+from outline.constants import *
 
 def main():
- 
-    headers = {
-        # Already added when you pass json=
-        # 'content-type': 'application/json',
-        'accept': 'application/json',
-    }
+    
+    load_dotenv()
+    
+    # headers = {
+    #     # Already added when you pass json=
+    #     # 'content-type': 'application/json',
+    #     'accept': 'application/json',
+    # }
 
-    json_data = {
-        'token': 'ol_api_NeDDfQEANwPyJkmCn0LJqkma8YCYEgsMJkqtmt',
-        'offset': 0,
-        'limit': 25,
-    }
+    # json_data = {
+    #     'token': os.getenv("OUTLINE_API_KEY"),
+    #     'offset': 0,
+    #     'limit': 25,
+    # }
 
-    response = requests.post('https://wiki.local.flaskforge.com/api/collections.list', headers=headers, json=json_data)
+    # response = requests.post('{}/api/collections.list'.format(os.getenv("OUTLINE_BASE_URL")), headers=headers, json=json_data)
     # print(response.text)
+
+    client = RemoteClient()
+    response = client.make_request(RequestType.LIST_COLLECTIONS)
     collections = json.loads(response.text)
     print("ID: {}\nName: {}".format(collections['data'][0]['id'], collections['data'][0]['name']))
 
