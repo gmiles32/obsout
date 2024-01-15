@@ -1,0 +1,5 @@
+wiki:
+  path: "/home/gabe/Projects/obsout/test-vault"
+exclude:
+  collections:
+    - private
