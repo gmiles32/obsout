@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 from .client import RemoteClient, LocalClient
 from .constants import *
 from .artifacts import *
@@ -32,8 +33,21 @@ class OutlineClient(RemoteClient):
 
 class Outline(LocalClient):
     """ Local Outline Notes """
-    def __init__(self, path , excluded, verbose: bool) -> None:
+    def __init__(self, verbose: bool,excluded=[],path='.') -> None:
         super().__init__()
-        self.path = path
+        if path[-1] == '/':
+            self.path = path
+        else:
+            self.path = path + '/'
         self.excluded = excluded
+        self.excluded.append(".obsidian")
         self.verbose = verbose
+
+    def get_local_collections(self) -> list[str]:
+        # collections = []
+        # for collection in os.listdir(self.path):
+        #     path = self.path + '/' + collection
+        #     if os.path.isdir(path):
+        #         collections.append(collection)
+        collections = [collection for collection in os.listdir(self.path) if (os.path.isdir(self.path + collection) and collection not in self.excluded)]
+        return collections

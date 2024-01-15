@@ -1,5 +1,5 @@
 wiki:
-  path: "/home/gabe/Projects/obsout/test-vault"
+  path: "/home/gabe/Projects/obsidian-to-outline/test-vault"
 exclude:
   collections:
     - private
