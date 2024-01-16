@@ -5,11 +5,12 @@ from outline.outline import *
 from outline.constants import *
 from outline.artifacts import *
 
-def status(local: LocalClient, sync_type: SyncType):
-    print("Missing collections:")
-    missing = local._get_missing_items(item=OutlineItems.COLLECTIONS, sync_type=sync_type)
+def status(local, sync_type: SyncType):
+    print("Missing:\n")
+    missing = local._get_missing_items(sync_type=sync_type)
     for collection in missing:
-        print("     {}".format(collection.name))
+        for document in collection.documents:
+            print("{}/{}".format(collection.name, document.name))
 
 def main():
     
@@ -30,7 +31,7 @@ def main():
     for collection in local.collections:
         print("Name: {}".format(collection.name))
 
-    client._create_client_collection(local._get_missing_items(OutlineItems.COLLECTIONS, SyncType.REMOTE))
+    # client._create_client_collection(local._get_missing_items(SyncType.REMOTE))
     status(local=local, sync_type=SyncType.LOCAL)
 
 if __name__ == "__main__":
