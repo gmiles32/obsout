@@ -1,6 +1,3 @@
-import os
-import json
-import requests
 from dotenv import load_dotenv
 import yaml
 
@@ -16,15 +13,22 @@ def main():
 
     wiki_path = yml['wiki']['path']
     excluded = yml['exclude']['collections']
+
+
     client = OutlineClient(verbose=False)
-    local = Outline(path=wiki_path, excluded=excluded, verbose=False)
-    local_collections = local.get_local_collections()
-    remote_collections = client.get_remote_collections()
-    for collection in remote_collections:
+    local = Outline(client=client, path=wiki_path, excluded=excluded, verbose=False)
+
+    for collection in client.collections:
         print("ID: {}\nName: {}\n".format(collection.id, collection.name))
 
-    for collection in local_collections:
-        print("Name: {}".format(collection))
+    for collection in local.collections:
+        print("Name: {}".format(collection.name))
+
+    missing = local._get_missing_items(item=OutlineItems.COLLECTIONS, sync_type=SyncType.REMOTE)
+    print(missing[0].name)
+
+def status():
+    pass
 
 if __name__ == "__main__":
     main()

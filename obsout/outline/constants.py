@@ -14,10 +14,10 @@ class RequestType(Enum):
 
     UPDATE_DOCUMENT = "/api/documents.update"
 
-JSON_DATA = {
-    RequestType.LIST_COLLECTIONS: {
-        'token': os.getenv("OUTLINE_API_KEY"),
-        'offset': 0,
-        'limit': 25,
-    },
-}
+class OutlineItems(Enum):
+    COLLECTIONS = "collections"
+    DOCUMENTS = "documents"
+
+class SyncType(Enum):
+    LOCAL = "local"
+    REMOTE = "remote"
