@@ -21,7 +21,7 @@ class OutlineClient(RemoteClient):
         json_data = {
         'token': os.getenv("OUTLINE_API_KEY"),
         'offset': 0,
-        'limit': 0,
+        'limit': 25,
         }
 
         data = json.loads(self._make_request(RequestType.LIST_COLLECTIONS, json_data=json_data).text)
@@ -37,16 +37,17 @@ class OutlineClient(RemoteClient):
             json_data = {
             'token': os.getenv("OUTLINE_API_KEY"),
             'offset': 0,
-            'limit': 0,
+            'limit': 25, # Need to figure out how to get around this limit
             "sort": "updatedAt",
             "direction": "DESC",
             "collectionId": collection.id,
-            "template": True
             }
 
             data = json.loads(self._make_request(RequestType.LIST_DOCUMENTS, json_data=json_data).text)['data']
             for document in data:
-                documents.append(Document(id=document['id'], name=document['title'], parent_id=['collectionId']))
+                new_doc = Document(id=document['id'], name=document['title'], parent_id=['collectionId'])
+                collection.documents.append(new_doc)
+                documents.append(new_doc)
 
         return documents
     
