@@ -30,6 +30,7 @@ def main():
     for collection in local.collections:
         print("Name: {}".format(collection.name))
 
+    client._create_client_collection(local._get_missing_items(OutlineItems.COLLECTIONS, SyncType.REMOTE))
     status(local=local, sync_type=SyncType.LOCAL)
 
 if __name__ == "__main__":

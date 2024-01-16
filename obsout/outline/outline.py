@@ -51,21 +51,23 @@ class OutlineClient(RemoteClient):
 
         return documents
     
-    def _create_client_collection(self, name: str, color="#FFFFFF"):
+    def _create_client_collection(self, collections: List[Collection], color="#FFFFFF"):
         """ Create collection in wiki """
         # This will produce duplicates of collections with unique IDs, I need a way of creating maps
 
-        json_data = {
-        "token": os.getenv("OUTLINE_API_KEY"),
-        "name": name,
-        "description": "",
-        "permission": "read_write",
-        "color": color,
-        "private": "false"
-        }
+        for collection in collections:
+            json_data = {
+            "token": os.getenv("OUTLINE_API_KEY"),
+            "name": collection.name,
+            "description": "",
+            "permission": "read_write",
+            "color": color,
+            "private": "false"
+            }
 
-        data = json.loads(self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data).text)
-        return data
+            # data = json.loads(self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data).text)
+            json.loads(self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data).text)
+
 
 class Outline(LocalClient):
     """ Local Outline Notes """
