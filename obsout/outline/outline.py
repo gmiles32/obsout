@@ -190,7 +190,7 @@ class Outline(LocalClient):
 
         self._refresh_local()
 
-    def _delete_client_collections(self, collections: List[Collection]) -> None:
+    def _delete_client_collection(self, collections: List[Collection]) -> None:
         """ Delete specified collections """
         for collection in collections:
             json_data = {
@@ -201,6 +201,22 @@ class Outline(LocalClient):
             self.client._make_request(RequestType.DELETE_COLLECTION, json_data=json_data)
 
         self.client._refresh_client()
+
+    def _delete_local_collections(self, collections: List[Collection]) -> None:
+        """ Delete a collection from local vault """
+        for collection in collections:
+            try:
+                os.rmdir(os.path.join(self.path,collection.name))
+            except OSError as error:
+                pass
+
+        self._refresh_local()
+
+    def _delete_client_documents(self, collection: Collection) -> None:
+        pass
+
+    def _delete_local_documents(self, collection: Collection) -> None:
+        pass
 
     def sync(self, sync_type: SyncType) -> None:
         """ Create and delete collections/documents depending on status """

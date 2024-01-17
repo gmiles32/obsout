@@ -31,7 +31,7 @@ def main():
     for collection in local.collections:
         print("Name: {}".format(collection.name))
 
-    local._delete_client_collections(collections=[collection for collection in client.collections if collection.name == "default"])
+    local._delete_local_collections(collections=[collection for collection in local.collections if collection.name == "default"])
 
     local.sync(SyncType.REMOTE)
 
