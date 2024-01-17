@@ -32,9 +32,12 @@ def main():
         print("Name: {}".format(collection.name))
 
     client._refresh_client()
-    local._create_client_documents(local.collections[0])
+    missing_items = local._get_missing_items(sync_type=SyncType.REMOTE)
+    local._create_client_collections(missing_items)
+    for collection in missing_items:
+        local._create_client_documents(collection)
     # client._create_client_collection(local._get_missing_items(SyncType.REMOTE))
-    status(local=local, sync_type=SyncType.LOCAL)
+    status(local=local, sync_type=SyncType.REMOTE)
 
 if __name__ == "__main__":
     main()

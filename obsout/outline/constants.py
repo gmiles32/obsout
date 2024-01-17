@@ -13,6 +13,7 @@ class RequestType(Enum):
     IMPORT_DOCUMENT = "/api/documents.import"
 
     CREATE_DOCUMENT = "/api/documents.create"
+    RETRIEVE_DOCUMENT = "/api/documents.info"
 
     UPDATE_DOCUMENT = "/api/documents.update"
 

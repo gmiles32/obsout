@@ -66,21 +66,9 @@ class OutlineClient(RemoteClient):
             "private": "false"
             }
 
-            # data = json.loads(self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data).text)
             self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data)
-            # collection.id = data['data']['id']
 
-    def _import_document(self, document: Document, path: str) -> None:
-        """ Create document in wiki """
-
-        json_data = {
-            "token": os.getenv("OUTLINE_API_KEY"),
-            "file": os.path.join(path,document.name + '.md'),
-            "collectionId": [collection.id for collection in self.collections if collection.name == document.parent_collection.name][0],
-        }
-
-        data = json.loads(self._make_request(RequestType.IMPORT_DOCUMENT, json_data=json_data).text)
-        print(data)
+        self._refresh_client()
 
 
 class Outline(LocalClient):
@@ -95,6 +83,9 @@ class Outline(LocalClient):
     def __set_library(self) -> None:
         self.collections = self._get_local_collections()
         self._get_local_documents()
+
+    def _refresh_local(self) -> None:
+        self.__set_library()
 
     def _get_local_collections(self) -> List[Collection]:
         """ List collections in vault """
@@ -135,7 +126,7 @@ class Outline(LocalClient):
                 missing = local_document_names - client_document_names
                 if len(missing) == 0:
                     continue
-                missing_documents = [document for document in self.collections if document.name in missing]
+                missing_documents = [document for document in local_collection.documents if document.name in missing]
                 missing_items.append(Collection(id=local_collection.id,name=local_collection.name,documents=missing_documents))
         else:   
             missing = client_collection_names - local_collection_names # names of missing collections from local
@@ -149,34 +140,76 @@ class Outline(LocalClient):
                 client_document_names = set(document.name for document in client_collection.documents)
                 
                 missing = client_document_names - local_document_names
-                if len(missing) == 0:
+                if len(missing) <= 0:
                     continue
-                missing_documents = [document for document in self.client.collections if document.name in missing]
+                missing_documents = [document for document in client_collection.documents if document.name in missing]
                 missing_items.append(Collection(id=local_collection.id,name=local_collection.name,documents=missing_documents))
 
      
         return missing_items
 
-    def _create_client_documents(self, collection: Collection) -> None:
+    def _create_client_collections(self, collections: List[Collection], color="#FFFFFF") -> None:
+        """ Create collection in wiki """
+        # This will produce duplicates of collections with unique IDs, I need a way of creating maps
+
+        for collection in collections:
+            json_data = {
+            "token": os.getenv("OUTLINE_API_KEY"),
+            "name": collection.name,
+            "description": "",
+            "permission": "read_write",
+            "color": color,
+            "private": "false"
+            }
+
+            self.client._make_request(RequestType.CREATE_COLLECTION, json_data=json_data)
+
+        self.client._refresh_client()
+
+    def _create_client_documents(self, local_collection: Collection) -> None:
         """ Create all documents in a collection based on local documents """
 
-        for document in collection.documents:
-            file = open(os.path.join(self.path,collection.name, document.name + '.md'))
+        for document in local_collection.documents:
+            file = open(os.path.join(self.path,local_collection.name, document.name + '.md'))
 
             json_data = {
                 "token": os.getenv("OUTLINE_API_KEY"),
                 "title": document.name,
-                "collectionId": [client_collection.id for client_collection in self.client.collections if client_collection.name == collection.name][0],
+                "collectionId": [client_collection.id for client_collection in self.client.collections if client_collection.name == local_collection.name][0],
                 "text": file.read(),
                 "publish": True
             }
 
-            data = json.loads(self.client._make_request(RequestType.CREATE_DOCUMENT, json_data=json_data).text)
-            print(data)
+            self.client._make_request(RequestType.CREATE_DOCUMENT, json_data=json_data)
+        
+        self.client._refresh_client()
 
-    def _create_local_documents(self, collection: Collection) -> None:
+    def _create_local_collections(self, collections: List[Collection]) -> None:
+        """ Create missing client collections in vault """
+        for collection in collections:
+            try:
+                os.mkdir(os.path.join(self.path,collection.name))
+            except OSError as error:
+                pass
+        self._refresh_local()
+        
+
+    def _create_local_documents(self, client_collection: Collection) -> None:
         """ Create local documents based on remote collection """
-        pass
+
+        for document in client_collection.documents:
+            json_data = {
+                "token": os.getenv("OUTLINE_API_KEY"),
+                "id": document.id
+            }
+
+            data = json.loads(self.client._make_request(RequestType.RETRIEVE_DOCUMENT, json_data=json_data).text)['data']
+            file = open(os.path.join(self.path,client_collection.name,document.name + '.md'), 'w')
+            file.write(data['text'])
+            file.close()
+
+        self._refresh_local()
+
 
     def sync(self) -> None:
         pass
