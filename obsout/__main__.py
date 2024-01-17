@@ -31,6 +31,8 @@ def main():
     for collection in local.collections:
         print("Name: {}".format(collection.name))
 
+    client._refresh_client()
+    local._create_client_documents(local.collections[0])
     # client._create_client_collection(local._get_missing_items(SyncType.REMOTE))
     status(local=local, sync_type=SyncType.LOCAL)
 

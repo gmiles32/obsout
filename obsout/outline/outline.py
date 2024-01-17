@@ -52,7 +52,7 @@ class OutlineClient(RemoteClient):
                 collection.documents.append(new_doc)
 
     
-    def _create_client_collection(self, collections: List[Collection], color="#FFFFFF"):
+    def _create_client_collection(self, collections: List[Collection], color="#FFFFFF") -> None:
         """ Create collection in wiki """
         # This will produce duplicates of collections with unique IDs, I need a way of creating maps
 
@@ -67,9 +67,21 @@ class OutlineClient(RemoteClient):
             }
 
             # data = json.loads(self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data).text)
-            json.loads(self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data).text)
+            self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data)
+            # collection.id = data['data']['id']
 
-    
+    def _import_document(self, document: Document, path: str) -> None:
+        """ Create document in wiki """
+
+        json_data = {
+            "token": os.getenv("OUTLINE_API_KEY"),
+            "file": os.path.join(path,document.name + '.md'),
+            "collectionId": [collection.id for collection in self.collections if collection.name == document.parent_collection.name][0],
+        }
+
+        data = json.loads(self._make_request(RequestType.IMPORT_DOCUMENT, json_data=json_data).text)
+        print(data)
+
 
 class Outline(LocalClient):
     """ Local Outline Notes """
@@ -145,3 +157,26 @@ class Outline(LocalClient):
      
         return missing_items
 
+    def _create_client_documents(self, collection: Collection) -> None:
+        """ Create all documents in a collection based on local documents """
+
+        for document in collection.documents:
+            file = open(os.path.join(self.path,collection.name, document.name + '.md'))
+
+            json_data = {
+                "token": os.getenv("OUTLINE_API_KEY"),
+                "title": document.name,
+                "collectionId": [client_collection.id for client_collection in self.client.collections if client_collection.name == collection.name][0],
+                "text": file.read(),
+                "publish": True
+            }
+
+            data = json.loads(self.client._make_request(RequestType.CREATE_DOCUMENT, json_data=json_data).text)
+            print(data)
+
+    def _create_local_documents(self, collection: Collection) -> None:
+        """ Create local documents based on remote collection """
+        pass
+
+    def sync(self) -> None:
+        pass

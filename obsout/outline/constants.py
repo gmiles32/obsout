@@ -12,6 +12,8 @@ class RequestType(Enum):
     EXPORT_DOCUMENT = "/api/documents.export"
     IMPORT_DOCUMENT = "/api/documents.import"
 
+    CREATE_DOCUMENT = "/api/documents.create"
+
     UPDATE_DOCUMENT = "/api/documents.update"
 
 class OutlineItems(Enum):
