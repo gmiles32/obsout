@@ -211,5 +211,16 @@ class Outline(LocalClient):
         self._refresh_local()
 
 
-    def sync(self) -> None:
-        pass
+    def sync(self, sync_type: SyncType) -> None:
+        """ Create and delete collections/documents depending on status """
+        missing_items = self._get_missing_items(sync_type=sync_type)
+
+        if sync_type == SyncType.REMOTE:
+            self._create_client_collections(missing_items)
+            for collection in missing_items:
+                self._create_client_documents(collection)
+
+        elif sync_type == SyncType.LOCAL:
+            self._create_local_collections(missing_items)
+            for collection in missing_items:
+                self._create_local_documents(collection)
