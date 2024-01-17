@@ -51,26 +51,6 @@ class OutlineClient(RemoteClient):
                 new_doc = Document(id=document['id'], name=document['title'], parent_collection=collection)
                 collection.documents.append(new_doc)
 
-    
-    def _create_client_collection(self, collections: List[Collection], color="#FFFFFF") -> None:
-        """ Create collection in wiki """
-        # This will produce duplicates of collections with unique IDs, I need a way of creating maps
-
-        for collection in collections:
-            json_data = {
-            "token": os.getenv("OUTLINE_API_KEY"),
-            "name": collection.name,
-            "description": "",
-            "permission": "read_write",
-            "color": color,
-            "private": "false"
-            }
-
-            self._make_request(RequestType.CREATE_COLLECTION, json_data=json_data)
-
-        self._refresh_client()
-
-
 class Outline(LocalClient):
     """ Local Outline Notes """
     def __init__(self, client: RemoteClient, excluded: List[str], path: str, verbose: bool) -> None:
@@ -210,6 +190,17 @@ class Outline(LocalClient):
 
         self._refresh_local()
 
+    def _delete_client_collections(self, collections: List[Collection]) -> None:
+        """ Delete specified collections """
+        for collection in collections:
+            json_data = {
+                "token": os.getenv("OUTLINE_API_KEY"),
+                "id": collection.id,
+            }
+
+            self.client._make_request(RequestType.DELETE_COLLECTION, json_data=json_data)
+
+        self.client._refresh_client()
 
     def sync(self, sync_type: SyncType) -> None:
         """ Create and delete collections/documents depending on status """
