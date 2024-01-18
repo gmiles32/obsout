@@ -14,7 +14,10 @@ class RemoteClient(Client):
         self.verbose = verbose
         self.key = os.getenv("OUTLINE_API_KEY")
         self.base_url = os.getenv("OUTLINE_BASE_URL")
-        self.headers = {'accept': 'application/json',}
+        self.headers = {
+            # 'Authorization': 'Bearer ' + os.getenv('OUTLINE_API_KEY'),
+            'accept': 'application/json',
+        }
 
     def _make_request(self, request_type: RequestType, json_data: dict) -> requests.Response:
         """ Make POST request to API"""

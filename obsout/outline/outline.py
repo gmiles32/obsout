@@ -22,7 +22,7 @@ class OutlineClient(RemoteClient):
         """ Get collections in wiki """
 
         json_data = {
-        'token': os.getenv("OUTLINE_API_KEY"),
+        'token': os.getenv('OUTLINE_API_KEY'),
         'offset': 0,
         'limit': 25,
         }
@@ -37,7 +37,7 @@ class OutlineClient(RemoteClient):
 
         for collection in self.collections:
             json_data = {
-            'token': os.getenv("OUTLINE_API_KEY"),
+            'token': os.getenv('OUTLINE_API_KEY'),
             'offset': 0,
             'limit': 25, # Need to figure out how to get around this limit
             "sort": "updatedAt",
@@ -134,7 +134,7 @@ class Outline(LocalClient):
 
         for collection in collections:
             json_data = {
-            "token": os.getenv("OUTLINE_API_KEY"),
+            'token': os.getenv('OUTLINE_API_KEY'),
             "name": collection.name,
             "description": "",
             "permission": "read_write",
@@ -153,7 +153,7 @@ class Outline(LocalClient):
             file = open(os.path.join(self.path,local_collection.name, document.name + '.md'))
 
             json_data = {
-                "token": os.getenv("OUTLINE_API_KEY"),
+                'token': os.getenv('OUTLINE_API_KEY'),
                 "title": document.name,
                 "collectionId": [client_collection.id for client_collection in self.client.collections if client_collection.name == local_collection.name][0],
                 "text": file.read(),
@@ -179,7 +179,7 @@ class Outline(LocalClient):
 
         for document in client_collection.documents:
             json_data = {
-                "token": os.getenv("OUTLINE_API_KEY"),
+                'token': os.getenv('OUTLINE_API_KEY'),
                 "id": document.id
             }
 
@@ -194,7 +194,7 @@ class Outline(LocalClient):
         """ Delete specified collections """
         for collection in collections:
             json_data = {
-                "token": os.getenv("OUTLINE_API_KEY"),
+                'token': os.getenv('OUTLINE_API_KEY'),
                 "id": collection.id,
             }
 
@@ -213,10 +213,25 @@ class Outline(LocalClient):
         self._refresh_local()
 
     def _delete_client_documents(self, collection: Collection) -> None:
-        pass
+        """ Delete documents on outline client """
+        for document in collection:
+            json_data = {
+                'token': os.getenv('OUTLINE_API_KEY'),
+                "id": document.id,
+                "permanent": True,
+            }
+
+            data = self.client._make_request(RequestType.DELETE_DOCUMENT, json_data=json_data)
+
+        self.client._refresh_client()
 
     def _delete_local_documents(self, collection: Collection) -> None:
-        pass
+        """ Delete documents in local vault """
+        for document in collection:
+            try:
+                os.remove(os.path.join(self.path,collection.name,document.name + '.md'))
+            except OSError as error:
+                pass
 
     def sync(self, sync_type: SyncType) -> None:
         """ Create and delete collections/documents depending on status """

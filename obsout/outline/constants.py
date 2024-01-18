@@ -9,12 +9,11 @@ class RequestType(Enum):
     DELETE_COLLECTION = "/api/collections.delete"
     
     EXPORT_COLLECTION = "/api/collections.export"
-    EXPORT_DOCUMENT = "/api/documents.export"
-    IMPORT_DOCUMENT = "/api/documents.import"
 
     CREATE_DOCUMENT = "/api/documents.create"
     RETRIEVE_DOCUMENT = "/api/documents.info"
-
+    DELETE_DOCUMENT = "/api/documents.delete"
+    ARCHIVE_DOCUMENT = "/api/documents.archive"
     UPDATE_DOCUMENT = "/api/documents.update"
 
 class OutlineItems(Enum):
