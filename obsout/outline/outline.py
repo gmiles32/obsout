@@ -1,9 +1,11 @@
-import requests
 import json
 import os
+import time
+import datetime
 from .client import RemoteClient, LocalClient
 from .constants import *
 from .artifacts import *
+from .utils import *
 
 class OutlineClient(RemoteClient):
     """ Remote Outline Client """
@@ -48,7 +50,8 @@ class OutlineClient(RemoteClient):
             data = json.loads(self._make_request(RequestType.LIST_DOCUMENTS, json_data=json_data).text)['data']
 
             for document in data:
-                new_doc = Document(id=document['id'], name=document['title'], parent_collection=collection)
+                
+                new_doc = Document(id=document['id'], name=document['title'], parent_collection=collection, mod_date=document['updatedAt'])
                 collection.documents.append(new_doc)
 
 class Outline(LocalClient):
@@ -83,7 +86,7 @@ class Outline(LocalClient):
 
         for collection in self.collections:
             for filename in os.listdir(os.path.join(self.path,collection.name)):
-                document = Document(id='',name=os.path.splitext(filename)[0],parent_collection=collection)
+                document = Document(id='',name=os.path.splitext(filename)[0],parent_collection=collection,mod_date='')
                 collection.documents.append(document)
     
     def _get_missing_items(self, sync_type: SyncType):
@@ -127,22 +130,53 @@ class Outline(LocalClient):
 
      
         return missing_items
+    
+    def _get_old_items(self, sync_type: SyncType) -> List[Collection]:
+        """ Get list of documents to update based on modification date and sync direction """
+
+        old_items = []
+        for collection in self.client.collections:
+            old_documents = []
+            for document in collection.documents:
+                client_mod_date = datetime.datetime.fromisoformat(document.mod_date)
+                local_filename = os.path.join(self.path,collection.name,document.name + '.md')
+                if os.path.exists(local_filename):
+                    local_mod_date = local_datetime(os.path.join(self.path,collection.name,document.name + '.md'))
+                else:
+                    continue
+                if sync_type == SyncType.REMOTE: # older documents in client are wanted
+                    if client_mod_date > local_mod_date: # if client document is newer
+                        pass
+                    else:
+                        old_documents.append(document)
+                if sync_type == SyncType.LOCAL: # older documents in local repo wanted
+                    if local_mod_date > client_mod_date:
+                        pass
+                    else:
+                        old_documents.append(document)
+
+            old_items.append(Collection(id=collection.id,name=collection.name,documents=old_documents))
+
+        return old_items
 
     def _create_client_collections(self, collections: List[Collection], color="#FFFFFF") -> None:
         """ Create collection in wiki """
         # This will produce duplicates of collections with unique IDs, I need a way of creating maps
-
+        client_collection_names = [collection.name for collection in self.client.collections]
         for collection in collections:
-            json_data = {
-            "token": os.getenv('OUTLINE_API_KEY'),
-            "name": collection.name,
-            "description": "",
-            "permission": "read_write",
-            "color": color,
-            "private": "false"
-            }
+            if collection.name in client_collection_names:
+                continue
+            else:
+                json_data = {
+                "token": os.getenv('OUTLINE_API_KEY'),
+                "name": collection.name,
+                "description": "",
+                "permission": "read_write",
+                "color": color,
+                "private": False
+                }
 
-            self.client._make_request(RequestType.CREATE_COLLECTION, json_data=json_data)
+                self.client._make_request(RequestType.CREATE_COLLECTION, json_data=json_data)
 
         self.client._refresh_client()
 
@@ -214,14 +248,14 @@ class Outline(LocalClient):
 
     def _delete_client_documents(self, collection: Collection) -> None:
         """ Delete documents on outline client """
-        for document in collection:
+        for document in collection.documents:
             json_data = {
                 "token": os.getenv('OUTLINE_API_KEY'),
                 "id": document.id,
-                "permanent": True,
+                "permanent": False,
             }
 
-            data = self.client._make_request(RequestType.DELETE_DOCUMENT, json_data=json_data)
+            data = json.loads(self.client._make_request(RequestType.DELETE_DOCUMENT, json_data=json_data).text)
 
         self.client._refresh_client()
 
@@ -260,8 +294,14 @@ class Outline(LocalClient):
             self._create_client_collections(missing_items)
             for collection in missing_items:
                 self._create_client_documents(collection)
+            old_items = self._get_old_items(sync_type=sync_type)
+            for collection in old_items:
+                self._update_client_documents(collection)
 
         elif sync_type == SyncType.LOCAL:
             self._create_local_collections(missing_items)
             for collection in missing_items:
                 self._create_local_documents(collection)
+            old_items = self._get_old_items(sync_type=sync_type)
+            for collection in old_items:
+                self._update_local_documents(collection)

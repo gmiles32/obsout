@@ -12,6 +12,9 @@ def status(local, sync_type: SyncType):
         for document in collection.documents:
             print("{}/{}".format(collection.name, document.name))
 
+def cli():
+    pass
+
 def main():
     
     load_dotenv()
@@ -25,8 +28,9 @@ def main():
     client = OutlineClient(verbose=False)
     local = Outline(client=client, path=wiki_path, excluded=excluded, verbose=False)
 
-    # local._delete_client_documents(collection=[collection for collection in client.collections if collection.name == "test"])
-    local._update_local_documents(collection=[collection for collection in client.collections if collection.name == "test"][0])
+    local._delete_client_documents(collection=[collection for collection in client.collections if collection.name == "OPNsense"][0])
+    # local._update_local_documents(collection=[collection for collection in client.collections if collection.name == "test"][0])
+    # local._get_old_items(sync_type=SyncType.REMOTE)
     local.sync(SyncType.REMOTE)
 
 if __name__ == "__main__":

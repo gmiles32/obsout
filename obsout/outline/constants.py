@@ -15,7 +15,7 @@ class RequestType(Enum):
     DELETE_DOCUMENT = "/api/documents.delete"
     ARCHIVE_DOCUMENT = "/api/documents.archive"
     UPDATE_DOCUMENT = "/api/documents.update"
-
+    UNPUBLISH_DOCUMENT = "/api/documents.unpublish"
 class OutlineItems(Enum):
     COLLECTIONS = "collections"
     DOCUMENTS = "documents"
