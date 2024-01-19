@@ -1,9 +1,9 @@
 from dotenv import load_dotenv
 import yaml
 
-from .outline.outline import *
-from .outline.constants import *
-from .outline.artifacts import *
+from outline.outline import *
+from outline.constants import *
+from outline.artifacts import *
 
 def status(local, sync_type: SyncType):
     print("Missing:\n")
@@ -25,8 +25,8 @@ def main():
     client = OutlineClient(verbose=False)
     local = Outline(client=client, path=wiki_path, excluded=excluded, verbose=False)
 
-    local._delete_client_documents(collection=[collection for collection in client.collections if collection.name == "test"])
-
+    # local._delete_client_documents(collection=[collection for collection in client.collections if collection.name == "test"])
+    local._update_local_documents(collection=[collection for collection in client.collections if collection.name == "test"][0])
     local.sync(SyncType.REMOTE)
 
 if __name__ == "__main__":
