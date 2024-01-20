@@ -1,6 +1,5 @@
 import json
 import os
-import time
 import datetime
 from .client import RemoteClient, LocalClient
 from .constants import *
@@ -247,7 +246,7 @@ class Outline(LocalClient):
         self._refresh_local()
 
     def _delete_client_documents(self, collection: Collection) -> None:
-        """ Delete documents on outline client """
+        """ Delete documents in collection on outline client """
         for document in collection.documents:
             json_data = {
                 "token": os.getenv('OUTLINE_API_KEY'),
@@ -255,7 +254,7 @@ class Outline(LocalClient):
                 "permanent": False,
             }
 
-            data = json.loads(self.client._make_request(RequestType.DELETE_DOCUMENT, json_data=json_data).text)
+            self.client._make_request(RequestType.DELETE_DOCUMENT, json_data=json_data)
 
         self.client._refresh_client()
 
@@ -285,6 +284,10 @@ class Outline(LocalClient):
     def _update_local_documents(self, collection: Collection) -> None:
         """ Update local documents based on wiki documents """
         self._create_local_documents(collection) # Does the same thing
+
+    def _find_document(self, collection_name: str, document_name: str) -> Collection:
+        """ Find a document with a specified collection and name """
+        pass
 
     def sync(self, sync_type: SyncType) -> None:
         """ Create and delete collections/documents depending on status """

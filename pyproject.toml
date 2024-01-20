@@ -9,8 +9,13 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 PyYAML = "^6.0.1"
-python-dotenv  = "^1.0.0"
+python-dotenv = "^1.0.0"
 requests = "^2.31.0"
+click = "^8.1.7"
+rich = "^13.7.0"
+
+[tool.poetry.scripts]
+obsout = "obsout.__main__:cli"
 
 [build-system]
 requires = ["poetry-core"]
