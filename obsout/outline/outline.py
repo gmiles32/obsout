@@ -1,6 +1,7 @@
 import json
 import os
 import datetime
+from ..console import console
 from .client import RemoteClient, LocalClient
 from .constants import *
 from .artifacts import *
@@ -10,6 +11,8 @@ class OutlineClient(RemoteClient):
     """ Remote Outline Client """
     def __init__(self, verbose: bool) -> None:
         super().__init__(verbose)
+        if self.verbose:
+            console.log("Building remote client...")
         self.__set_library()
 
     def __set_library(self) -> None:
@@ -17,6 +20,8 @@ class OutlineClient(RemoteClient):
         self._get_client_documents()
 
     def _refresh_client(self) -> None:
+        if self.verbose:
+            console.log("Refreshed remote client...")
         self.__set_library()
 
     def _get_client_collections(self) -> List[Collection]:
@@ -49,14 +54,27 @@ class OutlineClient(RemoteClient):
             data = json.loads(self._make_request(RequestType.LIST_DOCUMENTS, json_data=json_data).text)['data']
 
             for document in data:
-                
                 new_doc = Document(id=document['id'], name=document['title'], parent_collection=collection, mod_date=document['updatedAt'])
                 collection.documents.append(new_doc)
+
+    def _get_client_document_mod_date(self, document: Document) -> datetime.datetime:
+        """ Get the most current modification date of document on client """
+        json_data = {
+                "token": os.getenv('OUTLINE_API_KEY'),
+                "id": document.id
+            }
+
+        data = json.loads(self._make_request(RequestType.RETRIEVE_DOCUMENT, json_data=json_data).text)['data']
+        mod_date = datetime.datetime.strptime(data['updatedAt'],"%Y-%m-%dT%H:%M:%S.%fZ")
+        return mod_date
+
 
 class Outline(LocalClient):
     """ Local Outline Notes """
     def __init__(self, client: RemoteClient, excluded: List[str], path: str, verbose: bool) -> None:
         super().__init__(verbose)
+        if self.verbose:
+            console.log("Building local client...")
         self.client = client
         self.path = path
         self.excluded = excluded
@@ -67,6 +85,8 @@ class Outline(LocalClient):
         self._get_local_documents()
 
     def _refresh_local(self) -> None:
+        if self.verbose:
+            console.log("Refreshing local client...")
         self.__set_library()
 
     def _get_local_collections(self) -> List[Collection]:
@@ -137,30 +157,35 @@ class Outline(LocalClient):
         for collection in self.client.collections:
             old_documents = []
             for document in collection.documents:
-                client_mod_date = datetime.datetime.fromisoformat(document.mod_date)
+                # client_mod_date = datetime.datetime.fromisoformat(document.mod_date)
+                client_mod_date = self.client._get_client_document_mod_date(document)
                 local_filename = os.path.join(self.path,collection.name,document.name + '.md')
                 if os.path.exists(local_filename):
                     local_mod_date = local_datetime(os.path.join(self.path,collection.name,document.name + '.md'))
                 else:
                     continue
-                if sync_type == SyncType.REMOTE: # older documents in client are wanted
-                    if client_mod_date > local_mod_date: # if client document is newer
-                        pass
-                    else:
+                # diff = client_mod_date - local_mod_date
+                # if abs(diff.seconds) > 15: # Give 15s buffer for sync
+                if sync_type == SyncType.REMOTE and client_mod_date < local_mod_date: # older documents in client are wanted
+                    diff = local_mod_date - client_mod_date
+                    if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 15:
                         old_documents.append(document)
-                if sync_type == SyncType.LOCAL: # older documents in local repo wanted
-                    if local_mod_date > client_mod_date:
-                        pass
-                    else:
+                if sync_type == SyncType.LOCAL and local_mod_date < client_mod_date: # older documents in local repo wanted
+                    diff = client_mod_date - local_mod_date
+                    if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 15:
                         old_documents.append(document)
-
-            old_items.append(Collection(id=collection.id,name=collection.name,documents=old_documents))
+            if len(old_documents) > 0:
+                old_items.append(Collection(id=collection.id,name=collection.name,documents=old_documents))
 
         return old_items
 
-    def _create_client_collections(self, collections: List[Collection], color="#FFFFFF") -> None:
+    def _create_client_collections(self, collections: List[Collection]) -> None:
         """ Create collection in wiki """
-        # This will produce duplicates of collections with unique IDs, I need a way of creating maps
+        if os.getenv("COLLECTION_COLOR"):
+            color = os.getenv("COLLECTION_COLOR")
+        else:
+            color = "#FFFFFF"
+
         client_collection_names = [collection.name for collection in self.client.collections]
         for collection in collections:
             if collection.name in client_collection_names:
@@ -223,25 +248,23 @@ class Outline(LocalClient):
 
         self._refresh_local()
 
-    def _delete_client_collection(self, collections: List[Collection]) -> None:
+    def _delete_client_collection(self, collection: Collection) -> None:
         """ Delete specified collections """
-        for collection in collections:
-            json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
-                "id": collection.id,
-            }
+        json_data = {
+            "token": os.getenv('OUTLINE_API_KEY'),
+            "id": collection.id,
+        }
 
-            self.client._make_request(RequestType.DELETE_COLLECTION, json_data=json_data)
+        self.client._make_request(RequestType.DELETE_COLLECTION, json_data=json_data)
 
         self.client._refresh_client()
 
-    def _delete_local_collections(self, collections: List[Collection]) -> None:
+    def _delete_local_collection(self, collection: Collection) -> None:
         """ Delete a collection from local vault """
-        for collection in collections:
-            try:
-                os.rmdir(os.path.join(self.path,collection.name))
-            except OSError as error:
-                pass
+        try:
+            os.rmdir(os.path.join(self.path,collection.name))
+        except OSError as error:
+            pass
 
         self._refresh_local()
 
@@ -260,14 +283,16 @@ class Outline(LocalClient):
 
     def _delete_local_documents(self, collection: Collection) -> None:
         """ Delete documents in local vault """
-        for document in collection:
+        for document in collection.documents:
             try:
                 os.remove(os.path.join(self.path,collection.name,document.name + '.md'))
             except OSError as error:
                 pass
 
+        self._refresh_local()
+
     def _update_client_documents(self, collection: Collection) -> None:
-        """ Update specified documents in client """
+        """ Update documents in client """
         for document in collection.documents:
             file = open(os.path.join(self.path,collection.name,document.name + '.md'), 'r')
             json_data = {
@@ -280,6 +305,8 @@ class Outline(LocalClient):
             }
 
             self.client._make_request(RequestType.UPDATE_DOCUMENT, json_data=json_data)
+        
+        self.client._refresh_client()
 
     def _update_local_documents(self, collection: Collection) -> None:
         """ Update local documents based on wiki documents """
@@ -287,24 +314,53 @@ class Outline(LocalClient):
 
     def _find_document(self, collection_name: str, document_name: str) -> Collection:
         """ Find a document with a specified collection and name """
-        pass
+        collection = [collection for collection in self.client.collections if collection.name == collection_name]
+        if len(collection) == 0:
+            return None
+        document = [document for document in collection[0].documents if document.name == document_name]
+        
+        return Collection(id=collection[0].id,name=collection[0].name,documents=document)
 
     def sync(self, sync_type: SyncType) -> None:
         """ Create and delete collections/documents depending on status """
         missing_items = self._get_missing_items(sync_type=sync_type)
-
         if sync_type == SyncType.REMOTE:
             self._create_client_collections(missing_items)
+            console.print("Created missing collections in Outline")
             for collection in missing_items:
                 self._create_client_documents(collection)
+            console.print("Created missing documents in Outline")
             old_items = self._get_old_items(sync_type=sync_type)
             for collection in old_items:
                 self._update_client_documents(collection)
+            console.print("Updated documents in Outline")
 
         elif sync_type == SyncType.LOCAL:
             self._create_local_collections(missing_items)
+            console.print("Created missing collections in vault")
             for collection in missing_items:
                 self._create_local_documents(collection)
+            console.print("Created missing documents in vault")
             old_items = self._get_old_items(sync_type=sync_type)
             for collection in old_items:
                 self._update_local_documents(collection)
+            console.print("Updated documents in vault")
+
+    def delete(self, collection_name: str, document_name: str, all: bool):
+        """ Delete a document from Outline client and local vault """
+        collection = self._find_document(collection_name=collection_name,document_name=document_name)
+
+        if collection is None:
+            console.print("[bold red]Unable to find {}/{}, check collection/document name and try again".format(collection_name,document_name))
+            return
+        if all:
+            self._delete_client_collection(collection)
+            console.print("[bold blue]Deleted collection '{}' from client".format(collection_name))
+            self._delete_local_collection(collection)
+            console.print("[bold blue]Deleted collection '{}' from vault".format(collection_name))
+        else:
+            self._delete_client_documents(collection)
+            console.print("[bold blue]Deleted document '{}/{}' from client".format(collection_name,document_name))
+            self._delete_local_documents(collection)
+            console.print("[bold blue]Deleted document '{}/{}' from vault".format(collection_name,document_name))
+
