@@ -78,5 +78,21 @@ cli.add_command(status)
 cli.add_command(sync)
 cli.add_command(delete)
 
+# def main():
+#     verbose = False
+#     yml = load_vars(env="",config="",verbose=verbose)
+
+#     wiki_path = yml['wiki']['path']
+#     excluded = yml['wiki']['exclude']
+#     if excluded is None:
+#         excluded = []
+
+#     # Build client and local objects
+#     client = OutlineClient(verbose=verbose)
+#     outline = Outline(client=client, path=wiki_path, excluded=excluded, verbose=verbose)
+
+#     # outline.delete(collection_name="test",document_name="",all=True)
+
 if __name__ == "__main__":
     cli()
+    # main()

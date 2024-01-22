@@ -1,6 +1,8 @@
 import json
 import os
 import datetime
+import shutil
+
 from ..console import console
 from .client import RemoteClient, LocalClient
 from .constants import *
@@ -28,9 +30,8 @@ class OutlineClient(RemoteClient):
         """ Get collections in wiki """
 
         json_data = {
-        "token": os.getenv('OUTLINE_API_KEY'),
         'offset': 0,
-        'limit': 25,
+        'limit': 100,
         }
 
         data = json.loads(self._make_request(RequestType.LIST_COLLECTIONS, json_data=json_data).text)
@@ -43,9 +44,8 @@ class OutlineClient(RemoteClient):
 
         for collection in self.collections:
             json_data = {
-            "token": os.getenv('OUTLINE_API_KEY'),
             'offset': 0,
-            'limit': 25, # Need to figure out how to get around this limit
+            'limit': 100, # Need to figure out how to get around this limit
             "sort": "updatedAt",
             "direction": "DESC",
             "collectionId": collection.id,
@@ -60,7 +60,6 @@ class OutlineClient(RemoteClient):
     def _get_client_document_mod_date(self, document: Document) -> datetime.datetime:
         """ Get the most current modification date of document on client """
         json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
                 "id": document.id
             }
 
@@ -157,15 +156,13 @@ class Outline(LocalClient):
         for collection in self.client.collections:
             old_documents = []
             for document in collection.documents:
-                # client_mod_date = datetime.datetime.fromisoformat(document.mod_date)
                 client_mod_date = self.client._get_client_document_mod_date(document)
                 local_filename = os.path.join(self.path,collection.name,document.name + '.md')
                 if os.path.exists(local_filename):
                     local_mod_date = local_datetime(os.path.join(self.path,collection.name,document.name + '.md'))
                 else:
                     continue
-                # diff = client_mod_date - local_mod_date
-                # if abs(diff.seconds) > 15: # Give 15s buffer for sync
+
                 if sync_type == SyncType.REMOTE and client_mod_date < local_mod_date: # older documents in client are wanted
                     diff = local_mod_date - client_mod_date
                     if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 15:
@@ -192,7 +189,6 @@ class Outline(LocalClient):
                 continue
             else:
                 json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
                 "name": collection.name,
                 "description": "",
                 "permission": "read_write",
@@ -211,7 +207,6 @@ class Outline(LocalClient):
             file = open(os.path.join(self.path,local_collection.name, document.name + '.md'))
 
             json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
                 "title": document.name,
                 "collectionId": [client_collection.id for client_collection in self.client.collections if client_collection.name == local_collection.name][0],
                 "text": file.read(),
@@ -237,7 +232,6 @@ class Outline(LocalClient):
 
         for document in client_collection.documents:
             json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
                 "id": document.id
             }
 
@@ -251,7 +245,6 @@ class Outline(LocalClient):
     def _delete_client_collection(self, collection: Collection) -> None:
         """ Delete specified collections """
         json_data = {
-            "token": os.getenv('OUTLINE_API_KEY'),
             "id": collection.id,
         }
 
@@ -262,9 +255,9 @@ class Outline(LocalClient):
     def _delete_local_collection(self, collection: Collection) -> None:
         """ Delete a collection from local vault """
         try:
-            os.rmdir(os.path.join(self.path,collection.name))
-        except OSError as error:
-            pass
+            shutil.rmtree(os.path.join(self.path,collection.name))
+        except:
+            console.log("[bold red]Could not remove local collection {}".format(collection.name))
 
         self._refresh_local()
 
@@ -272,7 +265,6 @@ class Outline(LocalClient):
         """ Delete documents in collection on outline client """
         for document in collection.documents:
             json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
                 "id": document.id,
                 "permanent": False,
             }
@@ -296,7 +288,6 @@ class Outline(LocalClient):
         for document in collection.documents:
             file = open(os.path.join(self.path,collection.name,document.name + '.md'), 'r')
             json_data = {
-                "token": os.getenv('OUTLINE_API_KEY'),
                 "id": document.id,
                 "title": document.name,
                 "text": file.read(),

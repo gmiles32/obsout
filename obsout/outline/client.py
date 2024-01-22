@@ -15,7 +15,7 @@ class RemoteClient(Client):
         self.key = os.getenv("OUTLINE_API_KEY")
         self.base_url = os.getenv("OUTLINE_BASE_URL")
         self.headers = {
-            # 'Authorization': 'Bearer ' + os.getenv('OUTLINE_API_KEY'),
+            'Authorization': 'Bearer ' + os.getenv('OUTLINE_API_KEY'),
             'accept': 'application/json',
         }
 
