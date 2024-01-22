@@ -6,7 +6,7 @@ import click
 # from console import console
 from .outline import *
 from .config import *
-from .console import console
+from .console import console, logger
 
 @click.group("cli")
 @click.option('-v','--verbose',is_flag=True,help="Show verbose logs")
@@ -14,7 +14,7 @@ from .console import console
 @click.option('-e','--env',required=False,help="Specify .env file, defaults to current directory")
 @click.pass_context
 def cli(ctx,verbose,config="",env=""):
-    
+
     yml = load_vars(env=env,config=config,verbose=verbose)
 
     wiki_path = yml['wiki']['path']

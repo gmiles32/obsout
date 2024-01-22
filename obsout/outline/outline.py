@@ -2,8 +2,9 @@ import json
 import os
 import datetime
 import shutil
+import sys
 
-from ..console import console
+from ..console import console,logger
 from .client import RemoteClient, LocalClient
 from .constants import *
 from .artifacts import *
@@ -14,7 +15,7 @@ class OutlineClient(RemoteClient):
     def __init__(self, verbose: bool) -> None:
         super().__init__(verbose)
         if self.verbose:
-            console.log("Building remote client...")
+            self.log.info("Building remote client")
         self.__set_library()
 
     def __set_library(self) -> None:
@@ -23,7 +24,7 @@ class OutlineClient(RemoteClient):
 
     def _refresh_client(self) -> None:
         if self.verbose:
-            console.log("Refreshed remote client...")
+            self.log.info("Refreshed remote client")
         self.__set_library()
 
     def _get_client_collections(self) -> List[Collection]:
@@ -35,8 +36,12 @@ class OutlineClient(RemoteClient):
         }
 
         data = json.loads(self._make_request(RequestType.LIST_COLLECTIONS, json_data=json_data).text)
+        try:
+            collections = [Collection(id=collection['id'],name=collection['name'],documents=[]) for collection in data['data']]
+        except KeyError:
+            # log.exception("Invalid API Key!")
+            sys.exit(1)
 
-        collections = [Collection(id=collection['id'],name=collection['name'],documents=[]) for collection in data['data']]
         return collections
     
     def _get_client_documents(self) -> List[Document]:
@@ -73,7 +78,7 @@ class Outline(LocalClient):
     def __init__(self, client: RemoteClient, excluded: List[str], path: str, verbose: bool) -> None:
         super().__init__(verbose)
         if self.verbose:
-            console.log("Building local client...")
+            self.log.info("Building local client")
         self.client = client
         self.path = path
         self.excluded = excluded
@@ -85,7 +90,7 @@ class Outline(LocalClient):
 
     def _refresh_local(self) -> None:
         if self.verbose:
-            console.log("Refreshing local client...")
+            self.log.info("Refreshing local client")
         self.__set_library()
 
     def _get_local_collections(self) -> List[Collection]:

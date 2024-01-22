@@ -4,29 +4,33 @@ import sys
 from dotenv import load_dotenv
 import yaml
 
-from .console import console
+from .console import console,logger
 
 JSON_FILENAME = "conf.json"
 
 def load_vars(env: str, config:str, verbose: bool):
     """ Load env and configuration from file paths """
 
+    if verbose:
+        log = logger()
+
     # Test if config file exists
     config_dir = "/home/{}/.config/obsout".format(os.environ.get("USER"))
-    if verbose:
-        console.log("[bold blue]Loading previous configuration...")
+   
     if os.path.exists(os.path.join(config_dir,JSON_FILENAME)):
         with open(os.path.join(config_dir,JSON_FILENAME),'r') as config_file:
             config_json = json.loads(config_file.read())
             if verbose:
-                console.log("[bold green]Success!")
+                log.info("Loaded previous configuration")
     else:
-        console.log("[bold red]File does not exist![/bold red] Creating config directory at {}".format(config_dir))
+        if verbose:
+            log.warning("File {} does not exist".format(os.path.join(config_dir,JSON_FILENAME)))
+            log.info("Creating config directory at {}".format(config_dir))
         try:
             os.mkdir(config_dir)
         except OSError as error:
             if verbose:
-                console.log("[bold red]Config directory already exists!")
+                log.warning("Config directory {} already exists".format(config_dir))
             pass
         config_json = {
             "env_path": "",
@@ -41,7 +45,10 @@ def load_vars(env: str, config:str, verbose: bool):
         ENV_FILE = config_json['env_path'] or '.env' # use saved path or default to current directory
 
     if not load_dotenv(ENV_FILE):
-        sys.exit("Unable to load .env file: {}".format(ENV_FILE)) # Convert stuff to rich logging
+        if verbose:
+            log.critical("Unable to load .env file: {}".format(ENV_FILE))
+        console.print("[bold red]Unable to load .env file at path {}, check that path is correct".format(ENV_FILE))
+        sys.exit(1) # Convert stuff to rich logging
 
     # Load config yaml file
     if config:
@@ -49,15 +56,19 @@ def load_vars(env: str, config:str, verbose: bool):
     else:
         CONF_FILE = config_json['conf_path'] or 'conf.yml' # use saved path or default to current directory
     
-    if verbose:
-        console.log("Found env file at {}".format(ENV_FILE))
-        console.log("Found conf.yml file at {}".format(CONF_FILE))
-
     try:
         with open(CONF_FILE, 'r') as file:
             yml = yaml.safe_load(file)
     except OSError:
-        sys.exit("Unable to load conf.yml file at path {}: File does not exist".format(CONF_FILE))
+        if verbose:
+            log.critical("Unable to load conf file: {}".format(CONF_FILE))
+        console.print("[bold red]Unable to load conf.yml file at path {}: File does not exist".format(CONF_FILE))
+        sys.exit(1)
+
+
+    if verbose:
+        log.info("Found env file at {}".format(ENV_FILE))
+        log.info("Found conf.yml file at {}".format(CONF_FILE))
 
     # Save paths
     if not config_json["from_file"]:
@@ -69,6 +80,6 @@ def load_vars(env: str, config:str, verbose: bool):
         file.write(contents)
         file.close()
         if verbose:
-            console.log("[bold green]Saved configuration to {}".format(os.path.join(config_dir,JSON_FILENAME)))
+            log.info("Saved configuration to {}".format(os.path.join(config_dir,JSON_FILENAME)))
 
     return yml

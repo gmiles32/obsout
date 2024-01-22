@@ -4,6 +4,7 @@ import requests
 from abc import ABC, abstractmethod
 
 from .constants import *
+from ..console import logger
 
 class Client(ABC):
     ...
@@ -12,6 +13,8 @@ class RemoteClient(Client):
     @abstractmethod
     def __init__(self, verbose: bool) -> None:
         self.verbose = verbose
+        if self.verbose:
+            self.log = logger()
         self.key = os.getenv("OUTLINE_API_KEY")
         self.base_url = os.getenv("OUTLINE_BASE_URL")
         self.headers = {
@@ -28,3 +31,5 @@ class LocalClient(Client):
     @abstractmethod
     def __init__(self, verbose: bool) -> None:
         self.verbose = verbose
+        if self.verbose:
+            self.log = logger()
