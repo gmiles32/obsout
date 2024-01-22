@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "obsout"
-version = "0.1.2"
+version = "0.1.3"
 description = "Syncs md obsidian documents to outline wiki"
 authors = ["Gabe Miles <gabrielmiles32@gmail.com>"]
 license = "LICENSE.md"

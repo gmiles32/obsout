@@ -47,8 +47,12 @@ def status(ctx,local):
     
     if len(missing) > 0:
         for collection in missing:
-            for document in collection.documents:
-                console.print(" [bold red]missing: {}/{}".format(collection.name, document.name))
+            collection_name = collection.name
+            if len(collection.documents) <= 0:
+                console.print(" [bold red]missing: {}".format(collection_name))
+            else:
+                for document in collection.documents:
+                    console.print(" [bold red]missing: {}/{}".format(collection_name, document.name))
     if len(old) > 0:
         for collection in old:
             for document in collection.documents:
