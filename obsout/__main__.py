@@ -3,7 +3,7 @@ import click
 # from outline.outline import *
 # from outline.constants import *
 # from config import load_vars
-# from console import console
+# from console import console,logger
 from .outline import *
 from .config import *
 from .console import console, logger
@@ -26,12 +26,16 @@ def cli(ctx,verbose,config="",env=""):
     client = OutlineClient(verbose=verbose)
     outline = Outline(client=client, path=wiki_path, excluded=excluded, verbose=verbose)
 
-    ctx.obj = {'outline': outline}
+    ctx.obj = {'outline': outline,'verbose': verbose}
 
 @click.command("status",help="View local sync status")
 @click.option('--local',required=False,is_flag=True,default=False,help="Show status of local files compared to remote")
 @click.pass_context
 def status(ctx,local):
+    verbose = ctx.obj.get('verbose')
+    if verbose:
+        log = logger()
+
     if local:
         sync_type = SyncType.LOCAL
     else:
@@ -41,31 +45,53 @@ def status(ctx,local):
 
     missing = outline._get_missing_items(sync_type=sync_type)
     old = outline._get_old_items(sync_type=sync_type)
-    console.print("Status:")
+    if not verbose:
+        console.print("Status:")
     if len(missing) <= 0 and len(old) <= 0:
-        console.print(" [bold green]Up to date!")
+        if verbose:
+            log.info("Wiki is up to date")
+        else: 
+            console.print(" [bold green]Up to date!")
     
     if len(missing) > 0:
         for collection in missing:
             collection_name = collection.name
             if len(collection.documents) <= 0:
-                console.print(" [bold red]missing: {}".format(collection_name))
+                if verbose:
+                    log.info("Missing collection {}".format(collection_name))
+                else:
+                    console.print(" [bold red]missing: {}".format(collection_name))
             else:
                 for document in collection.documents:
-                    console.print(" [bold red]missing: {}/{}".format(collection_name, document.name))
+                    if verbose:
+                        log.info("Missing document {}/{}".format(collection_name, document.name))
+                    else:
+                        console.print(" [bold red]missing: {}/{}".format(collection_name, document.name))
     if len(old) > 0:
         for collection in old:
             for document in collection.documents:
-                console.print(" [dark_orange3]modified: {}/{}".format(collection.name, document.name))
+                if verbose:
+                    log.info("Document {}/{} out of sync".format(collection.name, document.name))
+                else: 
+                    console.print(" [dark_orange3]modified: {}/{}".format(collection.name, document.name))
 
 @click.command("sync",help="Sync local and client markdown files")
 @click.pass_context
 def sync(ctx):
     outline = ctx.obj.get('outline')
+    verbose = ctx.obj.get('verbose')
+    if verbose:
+        log = logger()
     with console.status("[bold green]Syncing...") as status:
-        console.print("[bold blue]Syncing Outline...")
+        if verbose:
+            log.info("Syncing Outline client")
+        else: 
+            console.print("[bold blue]Syncing Outline...")
         outline.sync(SyncType.REMOTE)
-        console.print("[bold blue]Syncing vault...")
+        if verbose:
+            log.info("Syncing local Obsidian vault")
+        else:
+            console.print("[bold blue]Syncing vault...")
         outline.sync(SyncType.LOCAL)
     console.print("[bold green]Complete!")
 
@@ -82,20 +108,20 @@ cli.add_command(status)
 cli.add_command(sync)
 cli.add_command(delete)
 
-# def main():
-#     verbose = False
-#     yml = load_vars(env="",config="",verbose=verbose)
+def main():
+    verbose = False
+    yml = load_vars(env="",config="",verbose=verbose)
 
-#     wiki_path = yml['wiki']['path']
-#     excluded = yml['wiki']['exclude']
-#     if excluded is None:
-#         excluded = []
+    wiki_path = yml['wiki']['path']
+    excluded = yml['wiki']['exclude']
+    if excluded is None:
+        excluded = []
 
-#     # Build client and local objects
-#     client = OutlineClient(verbose=verbose)
-#     outline = Outline(client=client, path=wiki_path, excluded=excluded, verbose=verbose)
+    # Build client and local objects
+    client = OutlineClient(verbose=verbose)
+    outline = Outline(client=client, path=wiki_path, excluded=excluded, verbose=verbose)
 
-#     # outline.delete(collection_name="test",document_name="",all=True)
+    outline.sync(SyncType.REMOTE)
 
 if __name__ == "__main__":
     cli()

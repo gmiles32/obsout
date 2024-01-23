@@ -4,6 +4,7 @@ import datetime
 import shutil
 import sys
 
+# from console import console,logger
 from ..console import console,logger
 from .client import RemoteClient, LocalClient
 from .constants import *
@@ -170,11 +171,11 @@ class Outline(LocalClient):
 
                 if sync_type == SyncType.REMOTE and client_mod_date < local_mod_date: # older documents in client are wanted
                     diff = local_mod_date - client_mod_date
-                    if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 15:
+                    if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 5:
                         old_documents.append(document)
                 if sync_type == SyncType.LOCAL and local_mod_date < client_mod_date: # older documents in local repo wanted
                     diff = client_mod_date - local_mod_date
-                    if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 15:
+                    if divmod(diff.days * 86400 + diff.seconds, 60)[1] > 5:
                         old_documents.append(document)
             if len(old_documents) > 0:
                 old_items.append(Collection(id=collection.id,name=collection.name,documents=old_documents))

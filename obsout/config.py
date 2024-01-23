@@ -4,6 +4,7 @@ import sys
 from dotenv import load_dotenv
 import yaml
 
+# from console import console,logger
 from .console import console,logger
 
 JSON_FILENAME = "conf.json"
